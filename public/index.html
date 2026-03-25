@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SecureFlow — SSDLC Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --bg: #050a0f;
+  --surface: #0a1420;
+  --surface2: #0f1e2e;
+  --accent: #00e5ff;
+  --accent2: #7c3aed;
+  --accent3: #10b981;
+  --danger: #ef4444;
+  --warn: #f59e0b;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --border: rgba(0,229,255,0.12);
+  --glow: 0 0 30px rgba(0,229,255,0.15);
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+/* ── GRID BACKGROUND ── */
+.grid-bg {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── NAVBAR ── */
+nav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.2rem 3rem;
+  background: rgba(5,10,15,0.8);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+}
+
+.logo {
+  font-family: 'Space Mono', monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: -0.5px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.logo-icon {
+  width: 28px; height: 28px;
+  background: var(--accent);
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+}
+
+.nav-links { display: flex; gap: 0.5rem; align-items: center; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.3rem;
+  border-radius: 8px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: none;
+  border: none;
+  transition: all 0.2s;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid transparent;
+}
+.btn-ghost:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+
+.btn-outline {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+.btn-outline:hover { background: rgba(0,229,255,0.08); }
+
+.btn-primary {
+  background: var(--accent);
+  color: #050a0f;
+  font-weight: 700;
+}
+.btn-primary:hover { 
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0,229,255,0.3);
+}
+
+/* ── HERO ── */
+.hero {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 8rem 2rem 4rem;
+  overflow: hidden;
+}
+
+.hero-glow {
+  position: absolute;
+  top: 20%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 700px; height: 500px;
+  background: radial-gradient(ellipse, rgba(0,229,255,0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-glow2 {
+  position: absolute;
+  bottom: -10%; right: -5%;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(124,58,237,0.1) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 1rem;
+  background: rgba(0,229,255,0.08);
+  border: 1px solid rgba(0,229,255,0.2);
+  border-radius: 50px;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--accent);
+  margin-bottom: 2rem;
+  animation: fadeUp 0.6s ease both;
+}
+
+.badge-dot {
+  width: 6px; height: 6px;
+  background: var(--accent);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+h1 {
+  font-size: clamp(3rem, 7vw, 6rem);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -2px;
+  margin-bottom: 1.5rem;
+  animation: fadeUp 0.7s 0.1s ease both;
+}
+
+.h1-line1 { color: var(--text); display: block; }
+.h1-line2 {
+  display: block;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-sub {
+  font-size: 1.1rem;
+  color: var(--muted);
+  max-width: 540px;
+  margin: 0 auto 2.5rem;
+  font-weight: 400;
+  animation: fadeUp 0.7s 0.2s ease both;
+}
+
+.hero-ctas {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  animation: fadeUp 0.7s 0.3s ease both;
+}
+
+.btn-hero {
+  padding: 0.8rem 2rem;
+  font-size: 1rem;
+}
+
+/* ── TERMINAL CARD ── */
+.terminal-wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 680px;
+  margin: 4rem auto 0;
+  animation: fadeUp 0.8s 0.4s ease both;
+}
+
+.terminal {
+  background: #0a1420;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--glow), 0 40px 80px rgba(0,0,0,0.5);
+}
+
+.terminal-bar {
+  background: #0f1e2e;
+  padding: 0.8rem 1.2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.dot { width: 10px; height: 10px; border-radius: 50%; }
+.dot-r { background: #ff5f57; }
+.dot-y { background: #febc2e; }
+.dot-g { background: #28c840; }
+.terminal-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.7rem;
+  color: var(--muted);
+  margin-left: 0.5rem;
+}
+
+.terminal-body {
+  padding: 1.4rem 1.8rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.78rem;
+  line-height: 1.9;
+}
+
+.t-comment { color: #4ade80; }
+.t-key { color: var(--accent); }
+.t-val { color: #f472b6; }
+.t-num { color: #fb923c; }
+.t-ok { color: #4ade80; }
+.t-warn { color: var(--warn); }
+.t-err { color: var(--danger); }
+.t-dim { color: var(--muted); }
+
+/* ── SECTION ── */
+section {
+  position: relative;
+  z-index: 1;
+  padding: 6rem 2rem;
+}
+
+.section-label {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  color: var(--accent);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.section-title {
+  font-size: clamp(2rem, 4vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -1px;
+  margin-bottom: 1rem;
+}
+
+.section-sub {
+  color: var(--muted);
+  max-width: 480px;
+  margin-bottom: 3.5rem;
+  font-weight: 400;
+}
+
+/* ── PHASES GRID ── */
+.phases-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.phase-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.8rem;
+  transition: all 0.3s;
+  position: relative;
+  overflow: hidden;
+}
+
+.phase-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: var(--card-accent, var(--accent));
+  transform: scaleX(0);
+  transition: transform 0.3s;
+  transform-origin: left;
+}
+
+.phase-card:hover {
+  border-color: rgba(0,229,255,0.25);
+  transform: translateY(-4px);
+  box-shadow: var(--glow);
+}
+.phase-card:hover::before { transform: scaleX(1); }
+
+.phase-num {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  color: var(--muted);
+  margin-bottom: 1rem;
+  letter-spacing: 2px;
+}
+
+.phase-icon {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  display: block;
+}
+
+.phase-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.phase-desc {
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.7;
+  font-family: 'Space Mono', monospace;
+}
+
+.phase-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 1.2rem;
+}
+
+.tag {
+  font-family: 'Space Mono', monospace;
+  font-size: 0.65rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 4px;
+  background: rgba(0,229,255,0.07);
+  color: var(--accent);
+  border: 1px solid rgba(0,229,255,0.15);
+}
+
+/* ── BEFORE/AFTER ── */
+.compare-wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+@media(max-width:640px){
+  .compare-wrap { grid-template-columns: 1fr; }
+  nav { padding: 1rem 1.5rem; }
+}
+
+.compare-card {
+  background: var(--surface);
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.compare-header {
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+  font-size: 0.9rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.compare-before .compare-header { background: rgba(239,68,68,0.08); color: var(--danger); }
+.compare-after .compare-header { background: rgba(16,185,129,0.08); color: var(--accent3); }
+
+.compare-body {
+  padding: 1.2rem 1.5rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.75rem;
+  line-height: 1.9;
+}
+
+.bad { color: var(--danger); }
+.good { color: var(--accent3); }
+
+/* ── STATS ── */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.stat-num {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--accent);
+  display: block;
+  font-family: 'Space Mono', monospace;
+}
+
+.stat-label { color: var(--muted); font-size: 0.85rem; margin-top: 0.3rem; }
+
+/* ── CTA SECTION ── */
+.cta-section {
+  text-align: center;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+/* ── FOOTER ── */
+footer {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 2rem;
+  color: var(--muted);
+  font-family: 'Space Mono', monospace;
+  font-size: 0.72rem;
+  border-top: 1px solid var(--border);
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+
+<!-- NAVBAR -->
+<nav>
+  <a href="/" class="logo">
+    <div class="logo-icon" style="color:#050a0f;font-weight:700">S</div>
+    SecureFlow
+  </a>
+  <div class="nav-links">
+    <a href="#phases" class="btn btn-ghost">Phases</a>
+    <a href="#compare" class="btn btn-ghost">Compare</a>
+    <a href="/login" class="btn btn-outline">Login</a>
+    <a href="/register" class="btn btn-primary">Get Started</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-glow2"></div>
+  <div>
+    <div class="badge">
+      <span class="badge-dot"></span>
+      Secure Software Development Life Cycle
+    </div>
+    <h1>
+      <span class="h1-line1">Build Secure.</span>
+      <span class="h1-line2">Stay Secure.</span>
+    </h1>
+    <p class="hero-sub">
+      SSDLC integrates security at every phase of development —
+      from planning to monitoring. Stop fixing. Start preventing.
+    </p>
+    <div class="hero-ctas">
+      <a href="/register" class="btn btn-primary btn-hero">Try the Demo</a>
+      <a href="#phases" class="btn btn-outline btn-hero">Explore Phases</a>
+    </div>
+
+    <!-- TERMINAL -->
+    <div class="terminal-wrap">
+      <div class="terminal">
+        <div class="terminal-bar">
+          <span class="dot dot-r"></span>
+          <span class="dot dot-y"></span>
+          <span class="dot dot-g"></span>
+          <span class="terminal-title">ssdlc-monitor.log</span>
+        </div>
+        <div class="terminal-body">
+          <div><span class="t-comment"># SSDLC Security Event Log</span></div>
+          <div><span class="t-dim">───────────────────────────────────</span></div>
+          <div><span class="t-dim">[2026-03-27 09:14:02]</span> <span class="t-key">PHASE</span> <span class="t-val">Planning</span> <span class="t-ok">✓ Requirements validated</span></div>
+          <div><span class="t-dim">[2026-03-27 09:15:11]</span> <span class="t-key">PHASE</span> <span class="t-val">Design</span> <span class="t-ok">✓ Threat model complete</span></div>
+          <div><span class="t-dim">[2026-03-27 09:20:44]</span> <span class="t-key">PHASE</span> <span class="t-val">Development</span> <span class="t-ok">✓ bcrypt hashing applied</span></div>
+          <div><span class="t-dim">[2026-03-27 09:35:08]</span> <span class="t-key">PHASE</span> <span class="t-val">Testing</span> <span class="t-warn">⚠ SQLi attempt blocked</span></div>
+          <div><span class="t-dim">[2026-03-27 09:40:22]</span> <span class="t-key">PHASE</span> <span class="t-val">Deployment</span> <span class="t-ok">✓ HTTPS enforced</span></div>
+          <div><span class="t-dim">[2026-03-27 09:45:55]</span> <span class="t-key">MONITOR</span> <span class="t-err">✗ Brute force detected — IP blocked</span></div>
+          <div><span class="t-dim">[2026-03-27 09:46:01]</span> <span class="t-key">MONITOR</span> <span class="t-ok">✓ Rate limit enforced (5 attempts)</span></div>
+          <div><span class="t-dim">───────────────────────────────────</span></div>
+          <div><span class="t-ok">STATUS: All SSDLC phases active ■</span><span class="blink">_</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PHASES -->
+<section id="phases" style="background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+  <div style="max-width:1100px;margin:0 auto;">
+    <div class="section-label">SSDLC Framework</div>
+    <h2 class="section-title">6 Phases of Secure Development</h2>
+    <p class="section-sub">Each phase includes security checkpoints that prevent vulnerabilities from reaching production.</p>
+
+    <div class="phases-grid">
+      <div class="phase-card reveal" style="--card-accent:#00e5ff">
+        <div class="phase-num">PHASE 01</div>
+        <span class="phase-icon">🧩</span>
+        <div class="phase-name">Planning</div>
+        <div class="phase-desc">Define security requirements before writing a single line of code. Establish password policies, access control rules, and compliance needs upfront.</div>
+        <div class="phase-tags">
+          <span class="tag">requirements</span>
+          <span class="tag">policy</span>
+          <span class="tag">risk</span>
+        </div>
+      </div>
+
+      <div class="phase-card reveal" style="--card-accent:#7c3aed">
+        <div class="phase-num">PHASE 02</div>
+        <span class="phase-icon">🧠</span>
+        <div class="phase-name">Design</div>
+        <div class="phase-desc">Apply threat modeling (STRIDE) before architecture is locked in. Identify attack vectors in data flows and design mitigations early.</div>
+        <div class="phase-tags">
+          <span class="tag">STRIDE</span>
+          <span class="tag">DFD</span>
+          <span class="tag">architecture</span>
+        </div>
+      </div>
+
+      <div class="phase-card reveal" style="--card-accent:#10b981">
+        <div class="phase-num">PHASE 03</div>
+        <span class="phase-icon">💻</span>
+        <div class="phase-name">Development</div>
+        <div class="phase-desc">Write secure code from the start — input validation, password hashing, parameterized queries, and secure session handling baked in.</div>
+        <div class="phase-tags">
+          <span class="tag">bcrypt</span>
+          <span class="tag">sanitization</span>
+          <span class="tag">SAST</span>
+        </div>
+      </div>
+
+      <div class="phase-card reveal" style="--card-accent:#f59e0b">
+        <div class="phase-num">PHASE 04</div>
+        <span class="phase-icon">🧪</span>
+        <div class="phase-name">Testing</div>
+        <div class="phase-desc">Break it before attackers do. DAST, SAST, penetration testing and manual code review catch vulnerabilities before release.</div>
+        <div class="phase-tags">
+          <span class="tag">DAST</span>
+          <span class="tag">pentest</span>
+          <span class="tag">fuzzing</span>
+        </div>
+      </div>
+
+      <div class="phase-card reveal" style="--card-accent:#ef4444">
+        <div class="phase-num">PHASE 05</div>
+        <span class="phase-icon">🚀</span>
+        <div class="phase-name">Deployment</div>
+        <div class="phase-desc">Release securely with HTTPS enforced, debug mode disabled, secrets externalized, and minimal attack surface in production configs.</div>
+        <div class="phase-tags">
+          <span class="tag">HTTPS</span>
+          <span class="tag">hardening</span>
+          <span class="tag">secrets</span>
+        </div>
+      </div>
+
+      <div class="phase-card reveal" style="--card-accent:#06b6d4">
+        <div class="phase-num">PHASE 06</div>
+        <span class="phase-icon">🔍</span>
+        <div class="phase-name">Monitoring</div>
+        <div class="phase-desc">Continuously detect and respond. Log all events, alert on anomalies, and integrate with SIEM tools like Wazuh for real-time visibility.</div>
+        <div class="phase-tags">
+          <span class="tag">SIEM</span>
+          <span class="tag">Wazuh</span>
+          <span class="tag">alerting</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPARE -->
+<section id="compare">
+  <div style="max-width:900px;margin:0 auto;">
+    <div class="section-label">Before vs After</div>
+    <h2 class="section-title">SDLC vs SSDLC</h2>
+    <p class="section-sub">See exactly what changes when you apply SSDLC to a real login system.</p>
+
+    <div class="compare-wrap reveal">
+      <div class="compare-card compare-before">
+        <div class="compare-header">❌ Without SSDLC</div>
+        <div class="compare-body">
+          <div class="bad">// Plain text password</div>
+          <div>const user = {</div>
+          <div>&nbsp; password: <span class="bad">"1234"</span></div>
+          <div>};</div>
+          <br/>
+          <div class="bad">// No rate limiting</div>
+          <div>app.post('/login', (req,res) => {</div>
+          <div>&nbsp; if (pass == user.password) {</div>
+          <div>&nbsp;&nbsp;&nbsp; res.send("Welcome!");</div>
+          <div>&nbsp; }</div>
+          <div>});</div>
+          <br/>
+          <div class="bad">// No logging</div>
+          <div class="bad">// No input validation</div>
+          <div class="bad">// Brute force possible ∞</div>
+        </div>
+      </div>
+
+      <div class="compare-card compare-after">
+        <div class="compare-header">✅ With SSDLC</div>
+        <div class="compare-body">
+          <div class="good">// bcrypt hashed password</div>
+          <div>const hash = bcrypt.hashSync(</div>
+          <div>&nbsp; password, <span class="good">12</span></div>
+          <div>);</div>
+          <br/>
+          <div class="good">// Rate limiting + logging</div>
+          <div>app.post('/login', async (req,res) => {</div>
+          <div>&nbsp; <span class="good">if (rateLimit(ip)) return 429;</span></div>
+          <div>&nbsp; await bcrypt.compare(pass, hash);</div>
+          <div>&nbsp; <span class="good">log(username, ip, status);</span></div>
+          <div>});</div>
+          <br/>
+          <div class="good">// Input validated ✓</div>
+          <div class="good">// Sessions secured ✓</div>
+          <div class="good">// Max 5 attempts/min ✓</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section style="background:var(--surface);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+  <div style="max-width:900px;margin:0 auto;text-align:center;">
+    <div class="section-label" style="text-align:center">Why It Matters</div>
+    <h2 class="section-title">The Cost of Ignoring Security</h2>
+    <div class="stats-grid" style="margin-top:2.5rem;">
+      <div class="stat-card reveal">
+        <span class="stat-num">$4.5M</span>
+        <div class="stat-label">Average cost of a data breach in 2024</div>
+      </div>
+      <div class="stat-card reveal">
+        <span class="stat-num">6x</span>
+        <div class="stat-label">Cheaper to fix security in design vs after deploy</div>
+      </div>
+      <div class="stat-card reveal">
+        <span class="stat-num">91%</span>
+        <div class="stat-label">Of breaches involve weak or stolen credentials</div>
+      </div>
+      <div class="stat-card reveal">
+        <span class="stat-num">0</span>
+        <div class="stat-label">Known vulnerabilities if SSDLC applied from day 1</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section reveal">
+  <div style="max-width:560px;margin:0 auto;text-align:center;">
+    <div class="section-label" style="text-align:center">Live Demo</div>
+    <h2 class="section-title">See SSDLC in Action</h2>
+    <p style="color:var(--muted);margin-bottom:2rem;font-weight:400;">
+      Register an account and explore our secure login system —
+      bcrypt hashing, rate limiting, session management, and live security logs.
+    </p>
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;">
+      <a href="/register" class="btn btn-primary" style="padding:0.8rem 2rem;font-size:1rem;">Create Account</a>
+      <a href="/login" class="btn btn-outline" style="padding:0.8rem 2rem;font-size:1rem;">Sign In</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div style="margin-bottom:0.5rem;">SecureFlow SSDLC Demo &nbsp;·&nbsp; Built for cybersecurity education</div>
+  <div>Presentation Date: 27 March 2026 &nbsp;·&nbsp; CADT</div>
+</footer>
+
+<style>
+.blink { animation: blink 1s step-end infinite; }
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+</style>
+
+<script>
+// Intersection Observer for reveal animations
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((e, i) => {
+    if (e.isIntersecting) {
+      setTimeout(() => e.target.classList.add('visible'), i * 80);
+      observer.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.1 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

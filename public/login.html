@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Login — SecureFlow</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root {
+  --bg: #050a0f;
+  --surface: #0a1420;
+  --surface2: #0f1e2e;
+  --accent: #00e5ff;
+  --accent2: #7c3aed;
+  --accent3: #10b981;
+  --danger: #ef4444;
+  --warn: #f59e0b;
+  --text: #e2e8f0;
+  --muted: #64748b;
+  --border: rgba(0,229,255,0.12);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  position: relative;
+}
+
+/* animated grid */
+.grid-bg {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,229,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,229,255,0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  pointer-events: none;
+}
+
+.glow-l {
+  position: fixed;
+  left: -10%; top: 50%;
+  transform: translateY(-50%);
+  width: 500px; height: 600px;
+  background: radial-gradient(ellipse, rgba(124,58,237,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+.glow-r {
+  position: fixed;
+  right: -10%; top: 30%;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(0,229,255,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* card */
+.card-wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
+  padding: 1rem;
+  animation: slideUp 0.5s ease both;
+}
+
+@keyframes slideUp {
+  from { opacity:0; transform:translateY(30px); }
+  to { opacity:1; transform:translateY(0); }
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 2.5rem;
+  box-shadow: 0 40px 80px rgba(0,0,0,0.4), 0 0 40px rgba(0,229,255,0.04);
+}
+
+.card-top {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.logo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-decoration: none;
+  margin-bottom: 1.5rem;
+}
+
+.logo-icon {
+  width: 36px; height: 36px;
+  background: var(--accent);
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  color: #050a0f;
+  font-weight: 800;
+  font-size: 1rem;
+}
+
+.logo-text {
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: var(--accent);
+  letter-spacing: -0.3px;
+}
+
+h1 {
+  font-size: 1.7rem;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 0.4rem;
+}
+
+.card-sub {
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 400;
+}
+
+/* form */
+.form-group {
+  margin-bottom: 1.2rem;
+}
+
+label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 0.5rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-family: 'Space Mono', monospace;
+}
+
+.input-wrap {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+input[type=text],
+input[type=email],
+input[type=password] {
+  width: 100%;
+  padding: 0.8rem 1rem 0.8rem 2.8rem;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-family: 'Syne', sans-serif;
+  font-size: 0.95rem;
+  transition: all 0.2s;
+  outline: none;
+}
+
+input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,229,255,0.08);
+}
+
+/* submit button */
+.btn-submit {
+  width: 100%;
+  padding: 0.9rem;
+  background: var(--accent);
+  color: #050a0f;
+  border: none;
+  border-radius: 10px;
+  font-family: 'Syne', sans-serif;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 0.5rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-submit:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,229,255,0.3);
+}
+
+.btn-submit:active { transform: translateY(0); }
+
+.btn-submit.loading {
+  color: transparent;
+  pointer-events: none;
+}
+
+.btn-submit.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 20px; height: 20px;
+  border: 2px solid #050a0f40;
+  border-top-color: #050a0f;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+
+/* message */
+.msg {
+  display: none;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  margin-bottom: 1.2rem;
+  font-family: 'Space Mono', monospace;
+  animation: fadeIn 0.3s ease;
+}
+@keyframes fadeIn { from{opacity:0;transform:translateY(-5px)} to{opacity:1;transform:translateY(0)} }
+.msg.error { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: var(--danger); }
+.msg.success { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); color: var(--accent3); }
+
+/* divider */
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-family: 'Space Mono', monospace;
+}
+.divider::before,.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* footer link */
+.card-footer {
+  text-align: center;
+  margin-top: 1.5rem;
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+.card-footer a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.card-footer a:hover { text-decoration: underline; }
+
+/* security badge */
+.security-note {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1rem;
+  background: rgba(16,185,129,0.06);
+  border: 1px solid rgba(16,185,129,0.15);
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  font-family: 'Space Mono', monospace;
+  font-size: 0.68rem;
+  color: var(--accent3);
+}
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="glow-l"></div>
+<div class="glow-r"></div>
+
+<div class="card-wrap">
+  <div class="card">
+    <div class="card-top">
+      <a href="/" class="logo-link">
+        <div class="logo-icon">S</div>
+        <span class="logo-text">SecureFlow</span>
+      </a>
+      <h1>Welcome back</h1>
+      <p class="card-sub">Sign in to your secure account</p>
+    </div>
+
+    <div class="security-note">
+      🔒 Protected by bcrypt + rate limiting · Max 5 attempts/min
+    </div>
+
+    <div class="msg" id="msg"></div>
+
+    <form id="loginForm" autocomplete="off">
+      <div class="form-group">
+        <label>Username</label>
+        <div class="input-wrap">
+          <span class="input-icon">👤</span>
+          <input type="text" id="username" placeholder="Enter username" required autocomplete="username"/>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+        <div class="input-wrap">
+          <span class="input-icon">🔑</span>
+          <input type="password" id="password" placeholder="Enter password" required autocomplete="current-password"/>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-submit" id="submitBtn">Sign In</button>
+    </form>
+
+    <div class="divider">or</div>
+
+    <div class="card-footer">
+      Don't have an account? <a href="/register">Create one</a>
+    </div>
+    <div class="card-footer" style="margin-top:0.5rem;">
+      <a href="/">← Back to home</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const form = document.getElementById('loginForm');
+const msg = document.getElementById('msg');
+const btn = document.getElementById('submitBtn');
+
+function showMsg(text, type) {
+  msg.textContent = type === 'error' ? '✗ ' + text : '✓ ' + text;
+  msg.className = 'msg ' + type;
+  msg.style.display = 'block';
+}
+
+form.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  btn.classList.add('loading');
+  msg.style.display = 'none';
+
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    btn.classList.remove('loading');
+
+    if (data.success) {
+      showMsg(data.message, 'success');
+      setTimeout(() => window.location.href = data.redirect, 800);
+    } else {
+      showMsg(data.message, 'error');
+    }
+  } catch {
+    btn.classList.remove('loading');
+    showMsg('Connection error. Try again.', 'error');
+  }
+});
+</script>
+</body>
+</html>
