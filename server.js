@@ -118,19 +118,97 @@ app.use(session({
   cookie: { secure: false, maxAge: 1000 * 60 * 30 }
 }));
 
-// ── RATE LIMITING ───────────────────────────────────────────────
-const attemptTracker = {};
+// ── PROGRESSIVE LOCKOUT ─────────────────────────────────────────
+//
+//  Attempt tier | Lockout duration  | What it means
+//  -------------|-------------------|----------------------------
+//   1 –  5      | No lockout        | Normal usage tolerance
+//   6 – 10      | 1 minute          | Suspicious, slow them down
+//  11 – 15      | 5 minutes         | Likely brute force
+//  16 – 20      | 15 minutes        | Aggressive attacker
+//  21+          | PERMANENT lock    | Must be manually unlocked
+//
+const lockoutTracker = {};
+// { [ip]: { attempts: Number, lockedUntil: timestamp|null, permanent: bool } }
 
+const LOCKOUT_TIERS = [
+  { minAttempts:  6, maxAttempts: 10, durationMs:      60 * 1000, label: '1 minute'   },
+  { minAttempts: 11, maxAttempts: 15, durationMs:  5 * 60 * 1000, label: '5 minutes'  },
+  { minAttempts: 16, maxAttempts: 20, durationMs: 15 * 60 * 1000, label: '15 minutes' },
+  { minAttempts: 21, maxAttempts: Infinity, durationMs: null,      label: 'PERMANENT'  },
+];
+
+function getLockoutTier(attempts) {
+  return LOCKOUT_TIERS.find(t => attempts >= t.minAttempts && attempts <= t.maxAttempts) || null;
+}
+
+function getTracker(ip) {
+  if (!lockoutTracker[ip]) {
+    lockoutTracker[ip] = { attempts: 0, lockedUntil: null, permanent: false };
+  }
+  return lockoutTracker[ip];
+}
+
+// Returns { blocked: bool, message: string, remainingSecs: number|null }
 function checkRateLimit(ip) {
+  const tracker = getTracker(ip);
   const now = Date.now();
-  if (!attemptTracker[ip]) attemptTracker[ip] = [];
-  attemptTracker[ip] = attemptTracker[ip].filter(t => now - t < 60000);
-  return attemptTracker[ip].length >= 5;
+
+  // Permanently locked
+  if (tracker.permanent) {
+    return { blocked: true, message: 'Account permanently locked due to repeated attacks. Contact admin.', remainingSecs: null };
+  }
+
+  // Currently in a timed lockout
+  if (tracker.lockedUntil && now < tracker.lockedUntil) {
+    const remainingSecs = Math.ceil((tracker.lockedUntil - now) / 1000);
+    const mins = Math.floor(remainingSecs / 60);
+    const secs = remainingSecs % 60;
+    const timeStr = mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+    return { blocked: true, message: `Too many failed attempts. Try again in ${timeStr}.`, remainingSecs };
+  }
+
+  // Lockout expired — clear the lock but keep attempt count
+  if (tracker.lockedUntil && now >= tracker.lockedUntil) {
+    tracker.lockedUntil = null;
+  }
+
+  return { blocked: false };
 }
 
 function recordAttempt(ip) {
-  if (!attemptTracker[ip]) attemptTracker[ip] = [];
-  attemptTracker[ip].push(Date.now());
+  const tracker = getTracker(ip);
+  tracker.attempts += 1;
+
+  const tier = getLockoutTier(tracker.attempts);
+  if (!tier) return; // under 6 attempts, no lockout yet
+
+  if (tier.durationMs === null) {
+    // Permanent lockout
+    tracker.permanent = true;
+    tracker.lockedUntil = null;
+    console.log(`🔴 PERMANENT lockout applied to IP: ${ip} (${tracker.attempts} attempts)`);
+  } else {
+    // Timed lockout
+    tracker.lockedUntil = Date.now() + tier.durationMs;
+    console.log(`🟡 Lockout applied to IP: ${ip} — ${tier.label} (${tracker.attempts} attempts)`);
+  }
+}
+
+// Returns lockout info for dashboard display
+function getLockoutInfo(ip) {
+  const tracker = getTracker(ip);
+  const now = Date.now();
+  return {
+    ip,
+    attempts: tracker.attempts,
+    permanent: tracker.permanent,
+    lockedUntil: tracker.lockedUntil,
+    remainingSecs: tracker.lockedUntil ? Math.max(0, Math.ceil((tracker.lockedUntil - now) / 1000)) : 0,
+    status: tracker.permanent ? 'PERMANENT' :
+            tracker.lockedUntil && now < tracker.lockedUntil ? 'LOCKED' :
+            tracker.attempts >= 6 ? 'WATCHING' : 'CLEAN'
+  };
 }
 
 // ── ROUTES ──────────────────────────────────────────────────────
@@ -165,17 +243,38 @@ app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   const ip = req.ip;
 
-  if (checkRateLimit(ip)) {
-    insertLog('LOGIN', username, ip, 'BLOCKED');
-    return res.json({ success: false, message: 'Too many attempts. Please wait 1 minute.' });
+  // Check progressive lockout FIRST
+  const lockout = checkRateLimit(ip);
+  if (lockout.blocked) {
+    const status = getTracker(ip).permanent ? 'PERMANENT' : 'BLOCKED';
+    insertLog('LOGIN', username || '(unknown)', ip, status);
+    return res.json({
+      success: false,
+      message: lockout.message,
+      remainingSecs: lockout.remainingSecs,
+      attempts: getTracker(ip).attempts
+    });
   }
 
   const user = findUser(username);
 
   if (!user || !(await bcrypt.compare(password, user.password))) {
     recordAttempt(ip);
+    const tracker = getTracker(ip);
+    const tier = getLockoutTier(tracker.attempts);
     insertLog('LOGIN', username || '(unknown)', ip, 'FAILED');
-    return res.json({ success: false, message: 'Invalid username or password.' });
+
+    // Tell the user their attempt count and next lockout threshold
+    let hint = `Invalid username or password. (Attempt ${tracker.attempts})`;
+    if (tracker.attempts === 5) hint += ' — Warning: next failure triggers lockout.';
+    if (tier) hint = `${tier.permanent ? 'Account permanently locked.' : `Locked for ${tier.label}.`} (${tracker.attempts} attempts)`;
+
+    return res.json({ success: false, message: hint, attempts: tracker.attempts });
+  }
+
+  // Successful login — reset attempt counter for this IP
+  if (lockoutTracker[ip]) {
+    lockoutTracker[ip] = { attempts: 0, lockedUntil: null, permanent: false };
   }
 
   req.session.user = { username: user.username, email: user.email };
@@ -196,7 +295,28 @@ app.get('/api/logs', (req, res) => {
   res.json(getRecentLogs(20));
 });
 
-// ── API: Logout ─────────────────────────────────────────────────
+// ── API: Lockout Status (for dashboard) ─────────────────────────
+app.get('/api/lockouts', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Unauthorized' });
+  const active = Object.keys(lockoutTracker)
+    .map(ip => getLockoutInfo(ip))
+    .filter(t => t.attempts > 0)
+    .sort((a, b) => b.attempts - a.attempts);
+  res.json(active);
+});
+
+// ── API: Unlock IP (admin action) ───────────────────────────────
+app.post('/api/unlock', (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'Unauthorized' });
+  const { ip } = req.body;
+  if (lockoutTracker[ip]) {
+    lockoutTracker[ip] = { attempts: 0, lockedUntil: null, permanent: false };
+    insertLog('UNLOCK', req.session.user.username, ip, 'UNLOCKED');
+  }
+  res.json({ success: true, message: `IP ${ip} has been unlocked.` });
+});
+
+
 app.post('/api/logout', (req, res) => {
   req.session.destroy();
   res.json({ success: true });
